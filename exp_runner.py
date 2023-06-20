@@ -231,7 +231,7 @@ class Runner:
                 position = t_origins + t_dirs * (t_ends-t_starts)[:, None]/2.0 #shape = (n_samples,3) 代表每个采样点的位置,取的是每个采样区间的中点
                 dir = t_dirs
                 sample_interval_dist = (t_ends - t_starts)[...,None] #shape = (n_samples,) 代表每个采样区间的长度
-                #z_val是没有考虑ray_o和ray_dir时，光线总长为1，其上每个采样区间的左边界
+                #原版的render.py中z_val是没有考虑ray_o和ray_dir时，光线总长为1，其上每个采样区间的左边界
                 #pos 是每个采样区间的中点
                 alpha,sample_pts_color,extras = self.renderer.nerfacc_forward(
                     position, 
@@ -248,6 +248,11 @@ class Runner:
 
             #try 0.5.3 nerfacc
             with torch.no_grad():
+                #ray_o,ray_d配合当前nerfacc的occ grid进行采样
+                #得到的返回值中：
+                #ray_indices.shape = (n_samples), 代表每个采样点所在光线的索引
+                #t_starts.shape = (n_samples), 代表每个采样点在其所在光线的起始位置（因为每个采样点实际上是一个离散区间）
+                #t_ends.shape = (n_samples), 代表每个采样点在其所在光线的终止位置
                 ray_indices, t_starts, t_ends = self.estimator.sampling(
                     rays_o, rays_d, alpha_fn=None, near_plane=0.01, far_plane=5,render_step_size=self.render_step_size, early_stop_eps=1e-2, alpha_thre=0) #试试0.3.5的nerfacc？
             
@@ -256,7 +261,7 @@ class Runner:
                 print(ray_indices.shape)
                 continue #如果没有采样到点，就跳过这个batch
 
-
+            #将获取到的采样点的位置和方向传入nerfacc的rendering函数，得到光线的颜色、透明度、深度、以及每个采样点上关于空间位置的梯度与1之间的差（即eikonal loss）
             infer_color, infer_opacity, infer_depth, extras = nerfacc.rendering(
                     t_starts, t_ends, ray_indices, n_rays=int(rays_o.shape[0]), rgb_alpha_fn=rgb_alpha_fn)
             
@@ -304,7 +309,7 @@ class Runner:
             # print(extras)
 
 
-
+            #计算loss和metrics
             gradient_error = extras['network_output']["gradient_error"]
             s_val= extras['network_output']['s_val']
             
