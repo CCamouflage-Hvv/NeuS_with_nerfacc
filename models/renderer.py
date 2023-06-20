@@ -378,9 +378,22 @@ class NeuSRenderer:
         }
 
     def render(self, rays_o, rays_d, near, far, perturb_overwrite=-1, background_rgb=None, cos_anneal_ratio=0.0):
+        """
+        这里是整个render的总函数，包括了粗采样和细采样
+        :param rays_o: 光线原点
+        :param rays_d: 光线方向
+        :param near: 近截面
+        :param far: 远截面
+        整个render的过程是：
+        1、通过rays_o和rays_d可以求出粗采样点
+        2、通过粗采样点可以求出粗采样点的sdf值，然后以此引导细采样up_sample func
+        3、将细采样点按顺序整合到已有的采样点集合中去
+        4、将所有采样点放入网络，求出sdf值和feature_vector，然后根据公式求出alpha、weights、color和gradient error
+        5、将alpha、weights、color和gradient error返回
+        """
         batch_size = len(rays_o)#光线的数量
         sample_dist = 2.0 / self.n_samples# 球的直径/粗采样点个数  # Assuming the region of interest is a unit sphere
-        z_vals = torch.linspace(0.0, 1.0, self.n_samples) #z_vals 代表光线深度方向上的采样点
+        z_vals = torch.linspace(0.0, 1.0, self.n_samples) #z_vals 代表光线深度方向上的采样点，此时只有粗采样点
         z_vals = near + (far - near) * z_vals[None, :]
 
         z_vals_outside = None
@@ -394,7 +407,7 @@ class NeuSRenderer:
             perturb = perturb_overwrite
         if perturb > 0:
             t_rand = (torch.rand([batch_size, 1]) - 0.5)
-            z_vals = z_vals + t_rand * 2.0 / self.n_samples #在深度方向上，随机扰动采样点
+            z_vals = z_vals + t_rand * 2.0 / self.n_samples #在深度方向上，添加采样点位置的一些随机扰动
 
             if self.n_outside > 0:
                 mids = .5 * (z_vals_outside[..., 1:] + z_vals_outside[..., :-1])
