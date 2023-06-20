@@ -1,0 +1,36 @@
+Task: test the BoW images classification in our ariel images data  
+    --note.1 use neighbor images to similate the BoW images for a test.
+
+
+
+Task: use images pyramid along the training process.
+
+
+
+Task: use multires-hash to speed up. /use nerfacc to speed up
+    --note.1 Hash encoding replace the positional encoding. So what I have to do just to change the positional encoding to hash encoding.
+    --note.2 borrow the hash embedding class from the HashNeRF-pytorch project.
+    --note.3 Make the pipeline of NeuS and NeRF-with-hash-encoded-embedding clear! Plot a pipeline illustration graph.
+    --note.4 看一看sdfstudio里面neus类的方法是怎么利用nerfacc的。
+
+
+Task: why BakedSDF can got a better result than the NeuS? I guess the reason could be the convergence speed which plays a important role in the final result.
+
+Task: 假设的单位球区域不太够，需要扩大这个球的半径或者进一步缩小场景。
+
+——————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————
+new Q1 : SDF本身具有一定的平滑性，但是收敛到正确表面的速度很慢。我发现当只有5views时，还可以重建出雕塑，但是加到到144张中随机选取4张进行训练时，很难重建出雕塑。
+discussion: 我觉得这还是和收敛速度、前交概率都有关系，会不会分块训练更好？即一小部分的区域单独训练，甚至是2像单独训练，以此前交增大可能性？此外，那个城市级别的magaNeRF似乎采用类似的做法。
+
+new Q2 ：每次迭代都重新换光线合理吗？我感觉不太合理。此外，每次迭代都重新换选择的照片，这应该也不合理。可以每次3次迭代换一次光线，每6次迭代换一次照片？这样还可以减少io的次数。
+
+new Q3 ：在这个https://github.com/yashbhalgat/HashNeRF-pytorch 项目的首页的对比视频里，左边的ngp版本在网络训练一段时间后就趋于稳定了，但是vanilla-nerf则是一致有闪烁的情况，实际训练时也存在loss在一段时间后反复上下浮动且PSNR不再上升，Loss不再下降，在某个范围内浮动的现象。这是为什么呢？是因为学习率的余弦退火还没结束吗？NPG的基于voxel grid形式的特征表达有什么优势吗？
+discussion: grid-based 的表达方式应该是更有利于高频信息的学习，目前的over-all shaped PE 虽然具有平滑性，但是总体来看应该是不利于高频信息表达的。
+
+neu Q4 : NeRFacc加入之后为什么渲染结果明显不对呢？SDF在垂直地面的方向上分层了。
+
+_________________________________________________________________________________________________________________________________________________________________
+Task: put my dataset into this project __OK__
+Task: Save the images' name only when the data is being loaded. Load the image file only when it has been select.  __OK__
+Task: set the psnr metric output while training __OK__
+Task: learning rate scheme seems not work well.__OK__
